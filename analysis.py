@@ -62,11 +62,8 @@ def age():
 	unk = [0.0 for i in range(33)]
 	unk_c = 0
 
-	age_lt_25 = [0.0 for i in range(33)]
-	age_lt_25_c = 0
-
-	age_25_35 = [0.0 for i in range(33)]
-	age_25_35_c = 0
+	age_lt_35 = [0.0 for i in range(33)]
+	age_lt_35_c = 0
 
 	age_35_45 = [0.0 for i in range(33)]
 	age_35_45_c = 0
@@ -84,14 +81,10 @@ def age():
 			for i in range(33):
 				unk[i]+=b[j][i+1]
 			unk_c+=1
-		elif age<25:
-			for i in range(33):
-				age_lt_25[i]+=b[j][i+1]
-			age_lt_25_c+=1
 		elif age<35:
 			for i in range(33):
-				age_25_35[i]+=b[j][i+1]
-			age_25_35_c+=1
+				age_lt_35[i]+=b[j][i+1]
+			age_lt_35_c+=1
 		elif age<45:
 			for i in range(33):
 				age_35_45[i]+=b[j][i+1]
@@ -104,15 +97,14 @@ def age():
 			for i in range(33):
 				age_gt_55[i]+=b[j][i+1]
 			age_gt_55_c+=1
-	print(unk_c, age_lt_25_c, age_25_35_c, age_35_45_c, age_45_55_c, age_gt_55_c)
+	print(unk_c, age_lt_35_c, age_35_45_c, age_45_55_c, age_gt_55_c)
 
-	age=np.zeros([6,33])
+	age=np.zeros([5,33])
 	age[0]=np.true_divide(unk,unk_c)
-	age[1]=np.true_divide(age_lt_25,age_lt_25_c)
-	age[2]=np.true_divide(age_25_35,age_25_35_c)
-	age[3]=np.true_divide(age_35_45,age_35_45_c)
-	age[4]=np.true_divide(age_45_55,age_45_55_c)
-	age[5]=np.true_divide(age_gt_55,age_gt_55_c)
+	age[1]=np.true_divide(age_lt_35,age_lt_35_c)
+	age[2]=np.true_divide(age_35_45,age_35_45_c)
+	age[3]=np.true_divide(age_45_55,age_45_55_c)
+	age[4]=np.true_divide(age_gt_55,age_gt_55_c)
 
 	plt.figure()
 	ax = sns.heatmap(age[:,7:30], linewidth=0.5, cmap="YlGnBu")
@@ -344,7 +336,7 @@ def specs():
 	# plt.show()
 
 def main():
-	facial()
+	# facial()
 	# specs()
 	# eye()
 	# race()
