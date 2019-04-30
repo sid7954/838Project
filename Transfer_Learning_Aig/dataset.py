@@ -29,7 +29,7 @@ class FacesDataset(Dataset):
         self.labels_frame.drop(0)
         
     def __getitem__(self, idx):
-        img_name = os.path.join(self.labels_frame.iloc[idx, 0])
+        img_name = os.path.join("..",self.labels_frame.iloc[idx, 0])
         image = Image.open(img_name)
         
         def one_hot(idx):

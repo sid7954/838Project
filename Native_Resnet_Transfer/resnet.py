@@ -15,26 +15,35 @@ import torch.nn.functional as F
 import math
 import numpy as np
 from torch.autograd import Variable
+import torchvision
 
 
 def load_weights(model):
     pretrained_model = torchvision.models.resnet101(pretrained=True)
-    params1 = model.named_parameters()
-    params2 = pretrained_model.named_parameters()
+    params1 = model.state_dict()
+    params2 = pretrained_model.state_dict()
 
     print("Copying weights from pretrained model...")
     c = 0
-    dict_params2 = dict(params2)
-    for name1, param1 in params1:
-        if name1 in dict_params2:
-            c += 1
-            dict_params2[name1].data.copy_(param1.data)
-        else:
-            print("Not found:",name1)
 
-    model.load_state_dict(dict_params2)
+    dict_params1 = dict(params1)
+    dict_params2 = dict(params2)
+    #print(dict_params)
+    for name2 in dict_params2:
+        param2 = dict_params2[name2]
+        name = "module." + name2
+        if name in dict_params1:
+            c += 1
+            dict_params1[name].data.copy_(param2.data)
+            print("Found:", name)
+        else:
+            print("Not found:",name)
+
+    model.load_state_dict(dict_params1)
     print("Loaded weights from %d layers!"%c)
     return model
+
+
 
 def conv3x3(in_planes, out_planes, stride=1, groups=1, dilation=1):
     """3x3 convolution with padding"""
