@@ -238,8 +238,9 @@ class ResNet_ImageNet(nn.Module):
 
         for k, m in self.named_modules():
             if isinstance(m, nn.Conv2d):
-                n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
-                m.weight.data.normal_(0, math.sqrt(2. / n))
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                # n = m.kernel_size[0] * m.kernel_size[1] * m.out_channels
+                # m.weight.data.normal_(0, math.sqrt(2. / n))
                 if 'fc2' in str(k):
                     # Initialize last layer of gate with low variance
                     m.weight.data.normal_(0, 0.001)
