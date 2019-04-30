@@ -1,5 +1,6 @@
 '''Train CIFAR10 with PyTorch.'''
 from __future__ import print_function
+#from thop import profile
 
 import argparse
 import os
@@ -86,15 +87,16 @@ def main():
         
     # set the target rates for each layer
     # the default is to use the same target rate for each layer
-    target_rates_list = [args.target] * 16
-    #for i in range(7,30):
-    #    target_rates_list[i]=0.4
+    target_rates_list = [args.target] * 33
+    for i in range(7,30):
+        target_rates_list[i]=0.5
     target_rates = {i:target_rates_list[i] for i in range(len(target_rates_list))}
 
-    model = ResNet50_ImageNet()  #ResNet101_ImageNet()
+    model = ResNet101_ImageNet()
 
-    model = add_flops_counting_methods(model)
-    model.start_flops_count()
+    #flops, params = profile(model, input_size=(1, 3, 100,100))
+    #model = add_flops_counting_methods(model)
+    #model.start_flops_count()
 
     # optionally initialize from pretrained
     if args.pretrained:
@@ -120,8 +122,9 @@ def main():
             print("=> no checkpoint found at '{}'".format(latest_checkpoint))
     
     model = torch.nn.DataParallel(model).cuda()
-    model = add_flops_counting_methods(model)
-    model.start_flops_count()
+    
+    #model = add_flops_counting_methods(model)
+    #model.start_flops_count()
     
     # ImageNet Data loading code
     traindir = os.path.join(args.data, 'train')
@@ -139,10 +142,10 @@ def main():
                 #normalize,
             ]))
 
-    val_loader = FacesDataset("images/train","images/train_labels.csv", transforms.Compose([transforms.ToTensor()]))
+    val_loader = FacesDataset("images/val","images/val_labels.csv", transforms.Compose([transforms.ToTensor()]))
     
     train_loader =torch.utils.data.DataLoader(train_loader, batch_size=args.batch_size, shuffle=True, num_workers=2)
-    val_loader = torch.utils.data.DataLoader(val_loader, batch_size=args.batch_size, shuffle=False, num_workers=2)
+    val_loader = torch.utils.data.DataLoader(val_loader, batch_size=args.batch_size, shuffle=True, num_workers=2)
     # train_loader = torch.utils.data.DataLoader(
     #     datasets.ImageFolder(
     #         traindir,
@@ -228,14 +231,14 @@ def train(train_loader, model, criterion, optimizer, epoch, target_rates):
     top1 = AverageMeter()
     top5 = AverageMeter()
     activations = AverageMeter()
-
+    #flops, params = profile(model, input_size=(1, 3, 128,128))
     # Temperature of Gumble Softmax 
     # We simply keep it fixed
     temp = 1
 
     # switch to train mode
     model.train()
-
+    #flops, params = profile(model, input_size=(1, 3, 128,128),device="cuda:0")
     end = time.time()
 
     ttt = torch.FloatTensor(33).fill_(0)
@@ -311,8 +314,9 @@ def train(train_loader, model, criterion, optimizer, epoch, target_rates):
                       epoch, i, len(train_loader), batch_time=batch_time,
                       loss=losses, lossa=losses_t, lossc=losses_c, top1=top1, top5=top5, act=activations))
             sys.stdout.flush()
-    print(model.compute_average_flops_cost()/ 1e9 / 2)
-        
+    #print(model.compute_average_flops_cost()/ 1e9 / 2)
+    #print(flops)
+
     # log values to visdom
     if args.visdom:
         plotter.plot('act', 'train', epoch, activations.avg)
@@ -338,6 +342,9 @@ def validate(val_loader, model, criterion, epoch, target_rates):
     # switch to evaluate mode
     model.eval()
     
+    model = add_flops_counting_methods(model)
+    model.start_flops_count()
+
     with torch.no_grad():
         end = time.time()
         for i, (input, target) in enumerate(val_loader):
@@ -347,22 +354,25 @@ def validate(val_loader, model, criterion, epoch, target_rates):
             target_var = torch.autograd.Variable(target)
 
             # compute output
+            #model.reset_flops_count()
             output, activation_rates = model(input_var, temperature=temp)
+            #print(model.compute_average_flops_cost()/ 1e9 / 2)
             #print(target.data.cpu().numpy()) #.data[0].cpu().numpy()) #for i in range(args.batch_size))
             
             '''
+            op = output.data.cpu().numpy()
+            #print(output.size(), target_var.size())
             for i in range(args.batch_size):
-                print(target.data.cpu().numpy()[i],end='')
-                print(" ",end='')
+                print(target.data.cpu().numpy()[i],end=' ')
+                print(np.argmax(op[i]),end=' ')
                 for j in range(33):
-                    print(activation_rates[j].cpu().numpy()[i][0][0],end='')
-                    print(" ",end='')
-                print("\n",end='')
+                    print(activation_rates[j].cpu().numpy()[i][0][0],end=' ')
+                print()
             '''
-            
+
             # classification loss
             loss = criterion(output, target_var)
-
+            #print("Here")
             acts = 0
             for j, act in enumerate(activation_rates):
                 if target_rates[j] <= 1:
@@ -376,8 +386,11 @@ def validate(val_loader, model, criterion, epoch, target_rates):
             if math.isnan(acts.item()):
                  continue
 
+            #print("Here")
+
             # accumulate statistics over eval set
-            accumulator.accumulate(activation_rates, target_var, target_rates)
+            #accumulator.accumulate(activation_rates, target_var, target_rates)
+            #print("Here")
 
             # measure accuracy and record loss
             prec1, prec5 = accuracy(output.data, target, topk=(1, 5))
@@ -385,14 +398,18 @@ def validate(val_loader, model, criterion, epoch, target_rates):
             top1.update(prec1.item(), input.size(0))
             top5.update(prec5.item(), input.size(0))
             activations.update(acts.item(), 1)
+            #print("Here")
 
             # measure elapsed time
             batch_time.update(time.time() - end)
             end = time.time()
+            #print("Here")
+           
+
 
 
             
-            if i % args.print_freq==0:
+            if i % args.print_freq == 0:
                 print('Test: [{0}/{1}]\t'
                       'Time {batch_time.val:.3f} ({batch_time.avg:.3f})\t'
                       'Loss {loss.val:.4f} ({loss.avg:.4f})\t'

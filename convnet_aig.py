@@ -154,13 +154,13 @@ class Bottleneck(nn.Module):
         out = F.relu(self.bn1(self.conv1(x)), inplace=True)
         out = F.relu(self.bn2(self.conv2(out)), inplace=True)
         out = self.bn3(self.conv3(out))
-        out = self.shortcut(x) + out #* w[:,1].unsqueeze(1)
+        out = self.shortcut(x) + out * w[:,1].unsqueeze(1)
         out = F.relu(out, inplace=True)
         # Return output of layer and the value of the gate
         # The value of the gate will be used in the target rate loss
         return out, w[:, 1]
 
-
+'''
 class Bottleneck_without_gates(nn.Module):
     expansion = 4
 
@@ -173,7 +173,7 @@ class Bottleneck_without_gates(nn.Module):
         self.conv3 = nn.Conv2d(planes, self.expansion*planes, kernel_size=1, bias=False)
         self.bn3 = nn.BatchNorm2d(self.expansion*planes)
 
-        self.shortcut = nn.Sequential()
+        #self.shortcut = nn.Sequential()
         if stride != 1 or in_planes != self.expansion*planes:
             self.shortcut = nn.Sequential(
                 nn.Conv2d(in_planes, self.expansion*planes, kernel_size=1, stride=stride, bias=False),
@@ -212,13 +212,13 @@ class Bottleneck_without_gates(nn.Module):
         out = F.relu(self.bn1(self.conv1(x)), inplace=True)
         out = F.relu(self.bn2(self.conv2(out)), inplace=True)
         out = self.bn3(self.conv3(out))
-        out = self.shortcut(x) + out * w[:,1].unsqueeze(1)
+        out = x + out * w[:,1].unsqueeze(1)
         out = F.relu(out, inplace=True)
         # Return output of layer and the value of the gate
         # The value of the gate will be used in the target rate loss
         return out, w[:, 1]
+'''
 
-    
 class ResNet_ImageNet(nn.Module):
 
     def __init__(self, block, layers, num_classes=750):
